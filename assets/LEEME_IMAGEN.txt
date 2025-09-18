@@ -1,0 +1,11 @@
+# Agrega esta línea a tu pubspec.yaml para usar la imagen de fondo en el login:
+
+flutter:
+  assets:
+    - assets/turismo_bg.jpg
+
+# Coloca la imagen descargada de:
+# https://i.ibb.co/PzcLsZXt/turismo-bg.jpg
+# en la carpeta assets/ con el nombre turismo_bg.jpg
+
+# Si necesitas descargarla automáticamente, házmelo saber.

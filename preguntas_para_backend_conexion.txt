@@ -1,0 +1,15 @@
+# Nota importante sobre ALLOWED_HOSTS en Django
+
+- Si ves el error "Invalid HTTP_HOST header" o "DisallowedHost", debes agregar la IP local de tu PC (por ejemplo, '192.168.0.12') a la lista ALLOWED_HOSTS en settings.py:
+
+  ALLOWED_HOSTS = [
+      'localhost',
+      '127.0.0.1',
+      '192.168.0.12',  # tu IP local
+  ]
+
+- Para desarrollo, también puedes usar:
+
+  ALLOWED_HOSTS = ['*']
+
+- Después de guardar, reinicia el servidor Django.

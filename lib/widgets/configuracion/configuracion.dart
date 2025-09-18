@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 
 class SettingsPage2 extends StatefulWidget {
   const SettingsPage2({super.key});
@@ -15,7 +16,6 @@ class _SettingsPage2State extends State<SettingsPage2> {
     return Theme(
       data: _isDark ? ThemeData.dark() : ThemeData.light(),
       child: Scaffold(
-        // appBar: AppBar(title: const Text("Settings")),
         body: Center(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 400),
@@ -73,19 +73,27 @@ class _SettingsPage2State extends State<SettingsPage2> {
                   ],
                 ),
                 const Divider(),
-                const _SingleSection(
+                _SingleSection(
                   children: [
-                    _CustomListTile(
+                    const _CustomListTile(
                       title: "Help & Feedback",
                       icon: Icons.help_outline_rounded,
                     ),
-                    _CustomListTile(
+                    const _CustomListTile(
                       title: "About",
                       icon: Icons.info_outline_rounded,
                     ),
                     _CustomListTile(
                       title: "Sign out",
                       icon: Icons.exit_to_app_rounded,
+                      onTap: () async {
+                        await AuthService.logout();
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/login',
+                          (route) => false,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -102,10 +110,12 @@ class _CustomListTile extends StatelessWidget {
   final String title;
   final IconData icon;
   final Widget? trailing;
+  final VoidCallback? onTap;
   const _CustomListTile({
     required this.title,
     required this.icon,
     this.trailing,
+    this.onTap,
   });
 
   @override
@@ -114,7 +124,7 @@ class _CustomListTile extends StatelessWidget {
       title: Text(title),
       leading: Icon(icon),
       trailing: trailing,
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }
