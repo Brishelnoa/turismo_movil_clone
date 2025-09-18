@@ -1,0 +1,22 @@
+name: Turismo
+description: A new Flutter project
+publish_to: "none"
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  salomon_bottom_bar: ^3.3.2   # 👈 cada paquete va a este nivel
+  http: ^1.5.0
+  flutter_secure_storage: ^9.2.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true

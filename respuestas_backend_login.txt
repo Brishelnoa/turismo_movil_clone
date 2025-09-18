@@ -1,0 +1,26 @@
+Respuestas a dudas frecuentes de login Flutter/Django
+
+1. ¿El backend está corriendo en 0.0.0.0:8000 y no solo en 127.0.0.1?
+   - Debes iniciar Django con `python manage.py runserver 0.0.0.0:8000` para que sea accesible desde el emulador/dispositivo. Si usas solo 127.0.0.1, solo es accesible desde el propio host.
+
+2. ¿Ves en los logs de Django la petición cuando intento loguear desde Flutter?
+   - Si ves la línea `POST /api/auth/login/ ...` en la terminal de Django, la petición llega correctamente. Si no, revisa firewall, IP, o configuración de red.
+
+3. ¿El endpoint /api/auth/login/ acepta peticiones desde cualquier origen (CORS)?
+   - Debes tener instalado y configurado `django-cors-headers`. Para desarrollo, puedes usar `CORS_ALLOW_ALL_ORIGINS = True` en `settings.py`.
+
+4. ¿El backend espera exactamente los campos email y password en el body JSON?
+   - Sí, espera `{ "email": "...", "password": "..." }`. Si falta alguno, responde 400. Si son incorrectos, responde 401. No hay validaciones extra fuera de eso.
+
+5. ¿Puedes probar el login con Postman/curl usando la misma IP y puerto que uso en Flutter?
+   - Si funciona en Postman/curl pero no en Flutter, el problema es de red, CORS o código Flutter. Si tampoco funciona en Postman/curl, revisa el backend.
+
+6. ¿Hay algún log de error o advertencia en la terminal de Django cuando intento loguear desde Flutter?
+   - Si hay error, revisa y comparte el mensaje exacto. Si no hay log, probablemente la petición no llega al backend.
+
+7. ¿El backend está detrás de algún proxy, docker o configuración de red especial?
+   - Si usas Docker, asegúrate de exponer el puerto y usar la IP correcta. Si hay proxy/firewall, revisa reglas de acceso. Todo esto puede bloquear conexiones externas.
+
+---
+
+> Usa esta guía para resolver dudas comunes de integración Flutter/Django.

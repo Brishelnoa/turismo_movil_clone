@@ -1,0 +1,64 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Build outputs
+build/
+
+# Android
+android/.gradle/
+android/app/build/
+android/build/
+
+# iOS
+ios/
+!ios/Runner.xcodeproj/
+!ios/Runner.xcworkspace/
+!ios/Runner/Assets.xcassets/
+!ios/Runner/Base.lproj/
+!ios/Runner/Info.plist
+
+# macOS
+macos/
+
+# Windows
+windows/
+
+# Linux
+linux/
+
+# Web
+web/.dart_tool/
+web/build/
+
+# IDEs
+*.iml
+*.ipr
+*.iws
+.idea/
+.vscode/
+
+# Logs & temp files
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# OS-specific
+*.DS_Store
+Thumbs.db
+
+# Env files
+.env
+.env.*
+
+# Flutter Secure Storage (si usas almacenamiento local para dev)
+flutter_secure_storage.db
+
+# Opcional: si tu equipo no versiona pubspec.lock, descomenta
+# pubspec.lock
