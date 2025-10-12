@@ -2,9 +2,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-// Usa la IP local de tu PC si usas un dispositivo físico. Ejemplo: 'http://192.168.1.100:8000'
-// Usa la IP local real de tu PC si usas un dispositivo físico. Ejemplo: 'http://192.168.0.12:8000'
-const String baseUrl = 'http://192.168.0.12:8000';
+// Cambiado para producción Railway
+const String baseUrl = 'https://web-production-64f6.up.railway.app';
 final storage = FlutterSecureStorage();
 
 class AuthService {
