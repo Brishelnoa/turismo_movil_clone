@@ -3,6 +3,7 @@ import 'widgets/configuracion/configuracion.dart';
 import 'widgets/login/login.dart';
 import 'widgets/login/register.dart';
 import 'widgets/nav/navbar.dart';
+import 'view/pago_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-  title: 'Descubre Bolivia',
+      title: 'Descubre Bolivia',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const SignInPage1(),
       routes: {
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         '/register': (context) => const RegisterPage(),
         '/Perfil': (context) => const SettingsPage2(),
         '/Inicio': (context) => const GoogleBottomBar(),
+        '/Pago': (context) => const PagoView(monto: 50.0, reservaId: 1),
       },
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pago_view.dart'; // 👈 agregamos esta importación
 
 class Item {
   final String title;
@@ -14,6 +15,12 @@ final items = [
   Item(title: "Settings Page", icon: Icons.settings, color: Colors.cyan),
   Item(title: "Email Page", icon: Icons.email, color: Colors.green),
   Item(title: "Phone Page", icon: Icons.phone, color: Colors.purpleAccent),
+
+  // 👇 Nuevo item para el flujo de pagos móviles
+  Item(
+      title: "Procesar Pago",
+      icon: Icons.credit_card,
+      color: Colors.orangeAccent),
 ];
 
 class HeroListView extends StatefulWidget {
@@ -27,9 +34,8 @@ class _HeroListViewState extends State<HeroListView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Hero List View")),
+      appBar: AppBar(title: const Text("Hero List View")),
       body: ListView.builder(
-        
         itemCount: items.length,
         itemBuilder: (context, index) => ListTile(
           minTileHeight: 100,
@@ -46,12 +52,28 @@ class _HeroListViewState extends State<HeroListView> {
               child: Icon(items[index].icon, color: items[index].color),
             ),
           ),
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HeroListItemPage(index: index),
-            ),
-          ),
+          onTap: () {
+            // 👇 Aquí agregamos la condición para abrir la vista de pagos
+            if (items[index].title == "Procesar Pago") {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PagoView(
+                    monto: 50.0, // 💰 monto de prueba
+                    reservaId: 1, // 📦 id de reserva de ejemplo
+                  ),
+                ),
+              );
+            } else {
+              // Navegación normal para las demás vistas
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HeroListItemPage(index: index),
+                ),
+              );
+            }
+          },
         ),
       ),
     );
@@ -65,7 +87,7 @@ class HeroListItemPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Hero List Item Page")),
+      appBar: AppBar(title: const Text("Hero List Item Page")),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(

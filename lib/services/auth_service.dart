@@ -3,12 +3,13 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 // Cambiado para producción Railway
-const String baseUrl = 'https://web-production-64f6.up.railway.app';
+const String baseUrl = 'http://192.168.0.17:8000';
 final storage = FlutterSecureStorage();
 
 class AuthService {
-  static Future<Map<String, dynamic>> register(Map<String, dynamic> data) async {
-    final url = Uri.parse('$baseUrl/api/auth/register/');
+  static Future<Map<String, dynamic>> register(
+      Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/api/register/');
     try {
       final response = await http.post(
         url,
@@ -28,10 +29,12 @@ class AuthService {
       return {'success': false, 'error': 'Error de red o inesperado: $e'};
     }
   }
+
   static Future<bool> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/api/auth/login/');
+    final url = Uri.parse('$baseUrl/api/login/');
     print('[AuthService] Intentando login en: $url');
-    print('[AuthService] Body: {"email": "$email", "password": "${'*' * password.length}"}');
+    print(
+        '[AuthService] Body: {"email": "$email", "password": "${'*' * password.length}"}');
     try {
       final response = await http.post(
         url,
@@ -68,7 +71,8 @@ class AuthService {
   static Future<http.Response?> getProfile() async {
     final token = await getAccessToken();
     if (token == null) return null;
-    final url = Uri.parse('$baseUrl/api/auth/profile/'); // Cambia por tu endpoint protegido
+    final url =
+        Uri.parse('$baseUrl/api/perfil/'); // Cambia por tu endpoint protegido
     return await http.get(
       url,
       headers: {

@@ -3,7 +3,8 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-const String baseUrl = 'http://10.0.2.2:8000'; // Cambia por la IP de tu backend si usas dispositivo físico
+const String baseUrl =
+    'http://192.168.0.17:8000'; // Cambia por la IP de tu backend si usas dispositivo físico
 final storage = FlutterSecureStorage();
 
 Future<void> login(String email, String password) async {
@@ -30,7 +31,9 @@ Future<void> getUserProfile() async {
     print('No hay token guardado.');
     return;
   }
-  final url = Uri.parse('$baseUrl/api/auth/profile/'); // Cambia por tu endpoint protegido
+  final url = Uri.parse(
+    '$baseUrl/api/auth/profile/',
+  ); // Cambia por tu endpoint protegido
   final response = await http.get(
     url,
     headers: {
