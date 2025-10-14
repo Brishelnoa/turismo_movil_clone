@@ -33,8 +33,23 @@ class _GoogleBottomBarState extends State<GoogleBottomBar> {
           'Turismo',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: const [
-          Padding(
+        actions: [
+          IconButton(
+            tooltip: 'Mis Reservas',
+            icon: const Icon(Icons.book_online, color: Colors.black87),
+            onPressed: () => Navigator.pushNamed(context, '/MisReservas'),
+          ),
+          IconButton(
+            tooltip: 'Paquetes',
+            icon: const Icon(Icons.card_travel, color: Colors.black87),
+            onPressed: () => Navigator.pushNamed(context, '/Paquetes'),
+          ),
+          IconButton(
+            tooltip: 'Crear Reserva',
+            icon: const Icon(Icons.add_box, color: Colors.black87),
+            onPressed: () => Navigator.pushNamed(context, '/CrearReserva'),
+          ),
+          const Padding(
             padding: EdgeInsets.only(right: 12),
             child: Icon(Icons.notifications_none, color: Colors.black87),
           ),
@@ -55,8 +70,7 @@ class _GoogleBottomBarState extends State<GoogleBottomBar> {
   }
 }
 
-// Títulos para el AppBar por tab
-const _titles = ['Turismo - Inicio', 'Tus me gusta', 'Buscar', 'Perfil'];
+// (Se eliminó variable _titles que no se usa)
 
 // Ítems del bottom bar
 final _navBarItems = [
@@ -84,26 +98,26 @@ final _navBarItems = [
 
 // —— Placeholders simples ——
 class _InicioView extends StatelessWidget {
-  const _InicioView({super.key});
+  const _InicioView();
   @override
   Widget build(BuildContext context) => const TripGoHomePage();
 }
 
 class _LikesView extends StatelessWidget {
-  const _LikesView({super.key});
+  const _LikesView();
   @override
   Widget build(BuildContext context) => const PaginaViajes();
 }
 
 class _BuscarView extends StatelessWidget {
-  const _BuscarView({super.key});
+  const _BuscarView();
   @override
   Widget build(BuildContext context) =>
       const Center(child: Text('Buscar', style: TextStyle(fontSize: 22)));
 }
 
 class _PerfilView extends StatelessWidget {
-  const _PerfilView({super.key});
+  const _PerfilView();
   @override
   Widget build(BuildContext context) => const SettingsPage2();
 }

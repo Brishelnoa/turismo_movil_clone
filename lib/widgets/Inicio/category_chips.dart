@@ -5,7 +5,7 @@ class PopularCategoriesSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cats =  [
+    final cats = [
       ('Atracciones', Icons.attractions),
       ('Museo', Icons.museum_outlined),
       ('Hoteles', Icons.hotel),
@@ -41,7 +41,7 @@ class PopularCategoriesSection extends StatelessWidget {
 }
 
 class _CircleCategory extends StatelessWidget {
-  const _CircleCategory({required this.label, required this.icon, super.key});
+  const _CircleCategory({required this.label, required this.icon});
   final String label;
   final IconData icon;
 
