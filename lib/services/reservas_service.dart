@@ -17,7 +17,13 @@ class ReservasService {
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getAccessToken();
     final headers = <String, String>{'Content-Type': 'application/json'};
-    if (token != null) headers['Authorization'] = 'Bearer $token';
+    if (token != null) {
+      // If token looks like a JWT (has dots), use Bearer; otherwise use DRF Token scheme
+      if (token.contains('.'))
+        headers['Authorization'] = 'Bearer $token';
+      else
+        headers['Authorization'] = 'Token $token';
+    }
     return headers;
   }
 
@@ -216,6 +222,11 @@ class ReservasService {
     final url = Uri.parse('$_baseUrl/api/reservas/');
     try {
       final headers = await _getHeaders();
+      // si no se envía cliente_id, intentar inferirlo del user almacenado
+      if (!payload.containsKey('cliente_id')) {
+        final uid = await AuthService.getCurrentUserId();
+        if (uid != null) payload['cliente_id'] = uid;
+      }
       if (kDebugMode)
         debugPrint(
             '[ReservasService] POST $url -> payload: ${jsonEncode(payload)}');
@@ -264,14 +275,84 @@ class ReservasService {
     final url = Uri.parse('$_baseUrl/api/reserva-visitantes/');
     try {
       final headers = await _getHeaders();
-      final res = await http.post(url,
-          headers: headers,
-          body: jsonEncode({'reserva': reservaId, 'visitante': visitanteId}));
-      if (res.statusCode == 201)
-        return jsonDecode(res.body) as Map<String, dynamic>;
+      // Attempt 1: common payload keys (reserva, visitante)
+      final payload1 = {'reserva': reservaId, 'visitante': visitanteId};
       if (kDebugMode)
         debugPrint(
-            '[ReservasService] asociarVisitante failed: ${res.statusCode} ${res.body}');
+            '[ReservasService] asociarVisitante attempt 1 payload: ${jsonEncode(payload1)}');
+      var res =
+          await http.post(url, headers: headers, body: jsonEncode(payload1));
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 1 response: ${res.statusCode} ${res.body}');
+      if (res.statusCode == 201)
+        return jsonDecode(res.body) as Map<String, dynamic>;
+
+      // Attempt 2: backend may expect *_id keys
+      final payload2 = {'reserva_id': reservaId, 'visitante_id': visitanteId};
+      if (kDebugMode) {
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 2 payload: ${jsonEncode(payload2)}');
+        debugPrint(
+            '[ReservasService] asociarVisitante request headers: $headers');
+      }
+      res = await http.post(url, headers: headers, body: jsonEncode(payload2));
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 2 response: ${res.statusCode} ${res.body}');
+      if (res.statusCode == 201)
+        return jsonDecode(res.body) as Map<String, dynamic>;
+      // Attempt 3: try combined payload (both variants)
+      final payloadCombined = {
+        'reserva': reservaId,
+        'visitante': visitanteId,
+        'reserva_id': reservaId,
+        'visitante_id': visitanteId
+      };
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 3 combined payload: ${jsonEncode(payloadCombined)}');
+      res = await http.post(url,
+          headers: headers, body: jsonEncode(payloadCombined));
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 3 response: ${res.statusCode} ${res.body}');
+      if (res.statusCode == 201)
+        return jsonDecode(res.body) as Map<String, dynamic>;
+
+      // Attempt 4: try stringified ids (some serializers parse strings)
+      final payload4 = {
+        'reserva_id': reservaId.toString(),
+        'visitante_id': visitanteId.toString()
+      };
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 4 payload: ${jsonEncode(payload4)}');
+      res = await http.post(url, headers: headers, body: jsonEncode(payload4));
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 4 response: ${res.statusCode} ${res.body}');
+      if (res.statusCode == 201)
+        return jsonDecode(res.body) as Map<String, dynamic>;
+
+      // Attempt 4: try form-urlencoded body (some endpoints accept form data)
+      final headersForm = Map<String, String>.from(headers);
+      headersForm['Content-Type'] = 'application/x-www-form-urlencoded';
+      final formBody =
+          'reserva_id=${Uri.encodeQueryComponent(reservaId.toString())}&visitante_id=${Uri.encodeQueryComponent(visitanteId.toString())}';
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 4 form body: $formBody');
+      res = await http.post(url, headers: headersForm, body: formBody);
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante attempt 4 response: ${res.statusCode} ${res.body}');
+      if (res.statusCode == 201)
+        return jsonDecode(res.body) as Map<String, dynamic>;
+
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] asociarVisitante all attempts failed: ${res.statusCode} ${res.body}');
       return {'error': 'Status ${res.statusCode}', 'body': res.body};
     } catch (e) {
       if (kDebugMode)
@@ -370,6 +451,19 @@ class ReservasService {
 
       // 2) crear visitantes y asociarlos
       for (final v in visitantes) {
+        // client-side validation: required visitante fields per backend
+        final missing = <String>[];
+        if ((v['nombre'] ?? '').toString().isEmpty) missing.add('nombre');
+        if ((v['apellido'] ?? '').toString().isEmpty) missing.add('apellido');
+        if ((v['fecha_nac'] ?? '').toString().isEmpty) missing.add('fecha_nac');
+        if ((v['nacionalidad'] ?? '').toString().isEmpty)
+          missing.add('nacionalidad');
+        if ((v['nro_doc'] ?? '').toString().isEmpty) missing.add('nro_doc');
+        if (missing.isNotEmpty) {
+          throw Exception(
+              'Visitante payload missing fields: ${missing.join(', ')}');
+        }
+
         final vResp = await createVisitante(v);
         if (vResp.containsKey('id')) {
           final vid = vResp['id'] as int;

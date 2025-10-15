@@ -3,6 +3,7 @@ import 'package:salomon_bottom_bar/salomon_bottom_bar.dart';
 import '../configuracion/configuracion.dart';
 import '../Inicio/tripgo_home_page.dart';
 import '../guardado/pagina.viaje.dart';
+import '../../view/paquetes_list_page.dart';
 
 class GoogleBottomBar extends StatefulWidget {
   const GoogleBottomBar({super.key});
@@ -17,6 +18,7 @@ class _GoogleBottomBarState extends State<GoogleBottomBar> {
   // 👇 Pantallas de cada tab
   final List<Widget> _screens = const [
     _InicioView(),
+    _PaquetesTabView(),
     _LikesView(),
     _BuscarView(),
     _PerfilView(), // si quieres, aquí puedes poner tu ProfilePage1()
@@ -80,6 +82,11 @@ final _navBarItems = [
     selectedColor: Colors.purple,
   ),
   SalomonBottomBarItem(
+    icon: const Icon(Icons.card_travel),
+    title: const Text("Paquetes"),
+    selectedColor: Colors.orange,
+  ),
+  SalomonBottomBarItem(
     icon: const Icon(Icons.favorite_border),
     title: const Text("Me gusta"),
     selectedColor: Colors.pink,
@@ -101,6 +108,12 @@ class _InicioView extends StatelessWidget {
   const _InicioView();
   @override
   Widget build(BuildContext context) => const TripGoHomePage();
+}
+
+class _PaquetesTabView extends StatelessWidget {
+  const _PaquetesTabView();
+  @override
+  Widget build(BuildContext context) => const PaquetesListPage();
 }
 
 class _LikesView extends StatelessWidget {

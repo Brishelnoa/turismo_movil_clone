@@ -111,6 +111,17 @@ class AuthService {
     return null;
   }
 
+  /// Devuelve el mapa del usuario almacenado (o null si no existe)
+  static Future<Map<String, dynamic>?> getStoredUser() async {
+    final s = await storage.read(key: 'user');
+    if (s == null) return null;
+    try {
+      final m = jsonDecode(s);
+      if (m is Map<String, dynamic>) return m;
+    } catch (_) {}
+    return null;
+  }
+
   static Future<void> logout() async {
     await storage.deleteAll();
   }
