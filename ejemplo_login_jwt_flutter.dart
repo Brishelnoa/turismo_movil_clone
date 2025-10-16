@@ -3,8 +3,10 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+const String _defaultBaseUrl =
+    'https://backendspring2-production.up.railway.app';
 const String baseUrl =
-    'http://192.168.0.17:8000'; // Cambia por la IP de tu backend si usas dispositivo físico
+    String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
 final storage = FlutterSecureStorage();
 
 Future<void> login(String email, String password) async {

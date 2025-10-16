@@ -16,7 +16,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 //   en la LAN (por ejemplo 192.168.0.6). Asegúrate que esa IP está en
 //   ALLOWED_HOSTS en tu backend.
 // Si no pasas --dart-define, se usará _defaultBaseUrl.
-const String _defaultBaseUrl = 'http://192.168.0.6:8000';
+const String _defaultBaseUrl =
+    'https://backendspring2-production.up.railway.app';
 const String baseUrl =
     String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
 final storage = FlutterSecureStorage();

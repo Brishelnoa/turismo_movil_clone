@@ -199,7 +199,8 @@ class _PaqueteGridCard extends StatelessWidget {
               child: SizedBox(
                 height: 140,
                 width: double.infinity,
-                child: paquete.imagenPrincipal != null && paquete.imagenPrincipal!.isNotEmpty
+                child: paquete.imagenPrincipal != null &&
+                        paquete.imagenPrincipal!.isNotEmpty
                     ? Image.network(
                         paquete.imagenPrincipal!,
                         fit: BoxFit.cover,
@@ -246,7 +247,7 @@ class _PaqueteGridCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-            Text(paquete.displayPrice,
+                        Text(paquete.displayPrice,
                             style: const TextStyle(
                                 color: Colors.green,
                                 fontWeight: FontWeight.bold)),

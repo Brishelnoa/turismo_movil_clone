@@ -1,7 +1,11 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-const String baseUrl = 'http://192.168.0.17:8000';
+// Reuse BASE_URL set via --dart-define or default to the same default in auth_service
+const String _defaultBaseUrl =
+    'https://backendspring2-production.up.railway.app';
+const String baseUrl =
+    String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
 
 class PagoService {
   static Future<String?> iniciarPago(double monto, int reservaId) async {
