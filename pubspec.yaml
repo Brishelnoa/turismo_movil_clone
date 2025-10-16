@@ -13,9 +13,10 @@ dependencies:
   salomon_bottom_bar: ^3.3.2
   http: ^1.5.0
   flutter_secure_storage: ^9.2.4
-
-  # 👇 Agregamos este nuevo paquete
   url_launcher: ^6.3.0
+  webview_flutter: ^4.4.0
+
+  flutter_dotenv: ^6.0.0
 
 dev_dependencies:
   flutter_test:
