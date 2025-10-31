@@ -1,6 +1,12 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
+import 'dart:async';
+import 'network.dart';
+import 'package:flutter/foundation.dart';
+import 'fcm_service.dart';
 
 // URL base del backend.
 // - Por defecto usa la IP de desarrollo actual. Cámbiala según tu red/back-end.
@@ -16,22 +22,33 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 //   en la LAN (por ejemplo 192.168.0.6). Asegúrate que esa IP está en
 //   ALLOWED_HOSTS en tu backend.
 // Si no pasas --dart-define, se usará _defaultBaseUrl.
-const String _defaultBaseUrl =
-    'https://backendspring2-production.up.railway.app';
-const String baseUrl =
-    String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
+// Production value is documented in .env.example and can be provided via
+// --dart-define or env file. Default to local emulator host for dev.
+const String _defaultBaseUrl = 'http://192.168.0.6:8000';
+
+/// Resuelve la URL base con el siguiente orden de prioridad:
+/// 1. dotenv.env['BASE_URL'] (archivo .env cargado en main)
+/// 2. --dart-define=BASE_URL (String.fromEnvironment)
+/// 3. _defaultBaseUrl (10.0.2.2 para emulador Android)
+String get baseUrl {
+  // Resolve at call time so dotenv (loaded in main) has a chance to populate values.
+  final env = dotenv.env['BASE_URL'];
+  if (env != null && env.isNotEmpty) return env;
+  return const String.fromEnvironment('BASE_URL',
+      defaultValue: _defaultBaseUrl);
+}
+
+// Nota: para depuración, pide la variable `baseUrl` desde otro archivo
+// (por ejemplo desde main.dart) en tiempo de ejecución — evitar prints
+// en el nivel superior para mantener la librería limpia.
 final storage = FlutterSecureStorage();
 
 class AuthService {
   static Future<Map<String, dynamic>> register(
       Map<String, dynamic> data) async {
-    final url = Uri.parse('$baseUrl/api/register/');
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
-      );
+      final response = await postPath('/api/register/',
+          headers: {'Content-Type': 'application/json'}, body: data);
       if (response.statusCode == 201) {
         final respData = jsonDecode(response.body);
         // backend may return 'token' (TokenAuthentication) or 'access' (JWT)
@@ -55,12 +72,15 @@ class AuthService {
     print(
         '[AuthService] Body: {"email": "$email", "password": "${'*' * password.length}"}');
     try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
-      print('[AuthService] Status: ${response.statusCode}');
+      // Apply a timeout so the call fails fast if network is unreachable
+      final start = DateTime.now();
+      // Use network helper which will try candidates and cache a working base URL
+      final response = await postPath('/api/login/',
+          headers: {'Content-Type': 'application/json'},
+          body: {'email': email, 'password': password});
+      final elapsed = DateTime.now().difference(start);
+      print(
+          '[AuthService] Status: ${response.statusCode} (took ${elapsed.inMilliseconds} ms)');
       print('[AuthService] Respuesta: ${response.body}');
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -77,13 +97,43 @@ class AuthService {
         if (data['profile'] != null)
           await storage.write(key: 'user', value: jsonEncode(data['profile']));
         print('[AuthService] Login exitoso, tokens guardados.');
+        // Attempt to register FCM token after successful login (if available).
+        // Use a safe fallback that ensures Firebase is initialized before
+        // attempting to obtain the token.
+        try {
+          final registered = await FcmService.ensureInitializedAndRegister();
+          if (registered) {
+            if (kDebugMode)
+              debugPrint('[AuthService] FCM token sent to backend');
+          } else {
+            if (kDebugMode)
+              debugPrint(
+                  '[AuthService] FCM token not registered (no token or backend rejected)');
+          }
+        } catch (e) {
+          if (kDebugMode)
+            debugPrint('[AuthService] Could not register FCM token: $e');
+        }
         return true;
       } else {
-        print('[AuthService] Login fallido.');
+        print('[AuthService] Login fallido. Status ${response.statusCode}');
+        try {
+          final err = jsonDecode(response.body);
+          print('[AuthService] Error body: $err');
+        } catch (_) {
+          print('[AuthService] Error body (no-json): ${response.body}');
+        }
         return false;
       }
-    } catch (e) {
-      print('[AuthService] Excepción: $e');
+    } on TimeoutException catch (te) {
+      print('[AuthService] TimeoutException: $te');
+      return false;
+    } on SocketException catch (se) {
+      print('[AuthService] SocketException (network): $se');
+      return false;
+    } catch (e, st) {
+      print('[AuthService] Excepción inesperada: $e');
+      print(st);
       return false;
     }
   }
@@ -131,24 +181,16 @@ class AuthService {
     final token = await getAccessToken();
     if (token == null) return null;
     // prefer /api/users/me/ as in guide, fall back to /api/perfil/
-    final url = Uri.parse('$baseUrl/api/users/me/');
     try {
-      return await http.get(
-        url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $token',
-        },
-      );
+      return await getPath('/api/users/me/', headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Token $token',
+      });
     } catch (_) {
-      final url2 = Uri.parse('$baseUrl/api/perfil/');
-      return await http.get(
-        url2,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Token $token',
-        },
-      );
+      return await getPath('/api/perfil/', headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Token $token',
+      });
     }
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/fcm_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 
 class SettingsPage2 extends StatefulWidget {
   const SettingsPage2({super.key});
@@ -11,6 +14,7 @@ class SettingsPage2 extends StatefulWidget {
 
 class _SettingsPage2State extends State<SettingsPage2> {
   bool _isDark = false;
+  // debug token shown on demand; stored locally when dialog opened if needed
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -39,6 +43,62 @@ class _SettingsPage2State extends State<SettingsPage2> {
                     const _CustomListTile(
                       title: "Notifications",
                       icon: Icons.notifications_none_rounded,
+                    ),
+                    _CustomListTile(
+                      title: 'FCM Token (debug)',
+                      icon: Icons.vpn_key_outlined,
+                      trailing: TextButton(
+                        child: const Text('Mostrar / Registrar'),
+                        onPressed: () async {
+                          // Ensure firebase initialized
+                          await FcmService.ensureInitializedAndRegister();
+                          String token;
+                          try {
+                            token =
+                                (await FirebaseMessaging.instance.getToken()) ??
+                                    'null';
+                          } catch (e) {
+                            token = 'error: $e';
+                          }
+
+                          // If we have a token, call verbose register to fetch server response
+                          Map<String, dynamic>? serverResp;
+                          if (token != 'null' && !token.startsWith('error:')) {
+                            try {
+                              serverResp = await FcmService
+                                  .registerTokenWithBackendVerbose(token);
+                            } catch (e) {
+                              serverResp = {
+                                'success': false,
+                                'error': e.toString()
+                              };
+                            }
+                          }
+
+                          if (kDebugMode)
+                            debugPrint(
+                                '[Settings] FCM token: $token serverResp=$serverResp');
+                          if (!context.mounted) return;
+                          showDialog(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                    title: const Text('FCM Token (debug)'),
+                                    content: SingleChildScrollView(
+                                      child: ListBody(children: [
+                                        Text('Token: $token'),
+                                        Text(
+                                            'Server response: ${serverResp ?? 'no response'}'),
+                                      ]),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(ctx).pop(),
+                                          child: const Text('Cerrar'))
+                                    ],
+                                  ));
+                        },
+                      ),
                     ),
                     const _CustomListTile(
                       title: "Security Status",

@@ -5,6 +5,7 @@
 .pub-cache/
 .flutter-plugins
 .flutter-plugins-dependencies
+*.lock
 
 # Build outputs
 build/
@@ -13,6 +14,15 @@ build/
 android/.gradle/
 android/app/build/
 android/build/
+android/local.properties
+android/gradlew
+android/gradlew.bat
+android/gradle/
+
+# Firebase (sensible - no versionar)
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+lib/firebase_options.dart
 
 # iOS
 ios/
@@ -41,6 +51,7 @@ web/build/
 *.iws
 .idea/
 .vscode/
+.fleet/
 
 # Logs & temp files
 *.log
@@ -48,16 +59,20 @@ web/build/
 *.temp
 *.swp
 *.swo
+firebase-debug.log
 
 # OS-specific
 *.DS_Store
 Thumbs.db
 
-# Env files
+# Env files (sensible)
 .env
 .env.*
+.env.local
+.env.development
+.env.production
 
-# Flutter Secure Storage (si usas almacenamiento local para dev)
+# Flutter Secure Storage
 flutter_secure_storage.db
 
 # Opcional: si tu equipo no versiona pubspec.lock, descomenta

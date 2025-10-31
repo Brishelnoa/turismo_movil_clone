@@ -125,7 +125,7 @@ class _CrearReservaPageState extends State<CrearReservaPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
 
-    const baseUrl = "https://backendspring2-production.up.railway.app";
+    // const baseUrl = "https://backendspring2-production.up.railway.app";
 
     final clienteId = _storedUser?['id'];
     if (clienteId == null) {
@@ -151,8 +151,12 @@ class _CrearReservaPageState extends State<CrearReservaPage> {
     }
 
     try {
+      // Usar la baseUrl central definida en auth_service (resuelve dotenv / --dart-define / default)
+      // Nota: auth_service carga la variable `baseUrl` desde dotenv si existe.
+      final base = baseUrl;
+
       final response = await http.post(
-        Uri.parse('$baseUrl/api/crear-checkout-session/'),
+        Uri.parse('$base/api/crear-checkout-session/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'precio': precioCentavos, // 💰 En centavos
