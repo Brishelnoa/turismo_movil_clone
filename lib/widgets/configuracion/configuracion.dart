@@ -50,53 +50,138 @@ class _SettingsPage2State extends State<SettingsPage2> {
                       trailing: TextButton(
                         child: const Text('Mostrar / Registrar'),
                         onPressed: () async {
-                          // Ensure firebase initialized
-                          await FcmService.ensureInitializedAndRegister();
-                          String token;
-                          try {
-                            token =
-                                (await FirebaseMessaging.instance.getToken()) ??
-                                    'null';
-                          } catch (e) {
-                            token = 'error: $e';
-                          }
+                          // Mostrar diálogo de carga
+                          if (!context.mounted) return;
+                          showDialog(
+                            context: context,
+                            barrierDismissible: false,
+                            builder: (ctx) => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
 
-                          // If we have a token, call verbose register to fetch server response
+                          String token = 'Obteniendo token...';
+                          String errorDetails = '';
                           Map<String, dynamic>? serverResp;
-                          if (token != 'null' && !token.startsWith('error:')) {
-                            try {
-                              serverResp = await FcmService
-                                  .registerTokenWithBackendVerbose(token);
-                            } catch (e) {
-                              serverResp = {
-                                'success': false,
-                                'error': e.toString()
-                              };
+
+                          try {
+                            // Ensure firebase initialized
+                            if (kDebugMode)
+                              debugPrint(
+                                  '[Settings] Ensuring Firebase initialized...');
+                            await FcmService.ensureInitializedAndRegister();
+
+                            if (kDebugMode)
+                              debugPrint('[Settings] Getting FCM token...');
+                            final fcmToken =
+                                await FirebaseMessaging.instance.getToken();
+
+                            if (fcmToken == null) {
+                              token =
+                                  'Token es null - Firebase puede no estar configurado correctamente';
+                              errorDetails =
+                                  'Verifica que google-services.json esté en android/app/';
+                            } else {
+                              token = fcmToken;
+                              if (kDebugMode)
+                                debugPrint(
+                                    '[Settings] Token obtenido: ${token.substring(0, 20)}...');
+
+                              // Registrar en backend
+                              try {
+                                if (kDebugMode)
+                                  debugPrint(
+                                      '[Settings] Registrando token en backend...');
+                                serverResp = await FcmService
+                                    .registerTokenWithBackendVerbose(token);
+                                if (kDebugMode)
+                                  debugPrint(
+                                      '[Settings] Server response: $serverResp');
+                              } catch (e) {
+                                serverResp = {
+                                  'success': false,
+                                  'error': 'Error al registrar: ${e.toString()}'
+                                };
+                                if (kDebugMode)
+                                  debugPrint(
+                                      '[Settings] Error registrando: $e');
+                              }
+                            }
+                          } catch (e, stackTrace) {
+                            token = 'Error al obtener token';
+                            errorDetails = e.toString();
+                            if (kDebugMode) {
+                              debugPrint('[Settings] ERROR: $e');
+                              debugPrint('[Settings] Stack trace: $stackTrace');
                             }
                           }
 
-                          if (kDebugMode)
-                            debugPrint(
-                                '[Settings] FCM token: $token serverResp=$serverResp');
+                          // Cerrar diálogo de carga
+                          if (context.mounted) Navigator.of(context).pop();
+
+                          // Mostrar resultado
                           if (!context.mounted) return;
                           showDialog(
-                              context: context,
-                              builder: (ctx) => AlertDialog(
-                                    title: const Text('FCM Token (debug)'),
-                                    content: SingleChildScrollView(
-                                      child: ListBody(children: [
-                                        Text('Token: $token'),
-                                        Text(
-                                            'Server response: ${serverResp ?? 'no response'}'),
-                                      ]),
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('FCM Token (debug)'),
+                              content: SingleChildScrollView(
+                                child: ListBody(
+                                  children: [
+                                    const Text(
+                                      'Token FCM:',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.bold),
                                     ),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () =>
-                                              Navigator.of(ctx).pop(),
-                                          child: const Text('Cerrar'))
+                                    const SizedBox(height: 8),
+                                    SelectableText(
+                                      token,
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                    if (errorDetails.isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Detalles del error:',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SelectableText(
+                                        errorDetails,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.red,
+                                        ),
+                                      ),
                                     ],
-                                  ));
+                                    if (serverResp != null) ...[
+                                      const SizedBox(height: 16),
+                                      const Text(
+                                        'Respuesta del servidor:',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      SelectableText(
+                                        'Status: ${serverResp['success'] == true ? '✅ Éxito' : '❌ Error'}\n'
+                                        'Código: ${serverResp['statusCode'] ?? 'N/A'}\n'
+                                        'Datos: ${serverResp['body'] ?? serverResp['error'] ?? 'N/A'}',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  child: const Text('Cerrar'),
+                                ),
+                              ],
+                            ),
+                          );
                         },
                       ),
                     ),
