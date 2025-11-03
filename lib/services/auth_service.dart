@@ -1,6 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 
 // URL base del backend.
 // - Por defecto usa la IP de desarrollo actual. Cámbiala según tu red/back-end.
@@ -16,29 +17,111 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 //   en la LAN (por ejemplo 192.168.0.6). Asegúrate que esa IP está en
 //   ALLOWED_HOSTS en tu backend.
 // Si no pasas --dart-define, se usará _defaultBaseUrl.
-const String _defaultBaseUrl =
+// En debug usamos backend local; en release usamos producción.
+// Emulador Android ve el host como 10.0.2.2. Si pruebas en DISPOSITIVO físico,
+// puedes poner aquí la IP LAN de tu PC (p.ej. 'http://192.168.0.6:8000')
+// o pasarla por --dart-define.
+const String _debugLocalBaseUrl = 'http://10.0.2.2:8000';
+const String _releaseBaseUrl =
     'https://backendspring2-production.up.railway.app';
+
+const String _defaultBaseUrl =
+    kReleaseMode ? _releaseBaseUrl : _debugLocalBaseUrl;
+
+// Siempre se puede sobreescribir con: --dart-define=BASE_URL=http://IP:PUERTO
 const String baseUrl =
     String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
-final storage = FlutterSecureStorage();
+
+// 👇 Reemplaza 1 por el ID real del rol CLIENTE en tu BD
+const int kClienteRoleId = 2;
+final FlutterSecureStorage storage = FlutterSecureStorage();
 
 class AuthService {
   static Future<Map<String, dynamic>> register(
       Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/api/register/');
+    debugPrint('=================================================');
+    debugPrint('🚀 INICIANDO REGISTRO DE USUARIO');
+    debugPrint('📍 URL: $url');
+    debugPrint('📡 Base URL: $baseUrl');
+    debugPrint('📦 Datos recibidos: ${jsonEncode(data)}');
+
+    // Verificar conexión primero
     try {
+      final testConnection = await http.get(Uri.parse('$baseUrl/admin/'));
+      print('[AuthService] Test de conexión: ${testConnection.statusCode}');
+    } catch (e) {
+      print('[AuthService] Error de conexión en test: $e');
+    }
+
+    try {
+      // Crear un nuevo payload con los campos exactos que espera el backend
+      final payload = {
+        'nombres': data['nombres']?.trim(),
+        'apellidos': data['apellidos']?.trim(),
+        'email': data['email']?.trim().toLowerCase(),
+        'password': data['password'],
+        'password_confirm': data['password'],
+        'telefono': data['telefono']?.trim(),
+        'fecha_nacimiento': data['fecha_nacimiento'],
+        'genero': data['genero'],
+        'documento_identidad': data['documento_identidad']?.trim(),
+        'pais': data['pais']?.trim() ?? 'BO',
+        'rol': kClienteRoleId, // Siempre enviamos el rol de cliente
+      };
+
+      // Validar campos requeridos según el backend
+      final requiredFields = {
+        'nombres': payload['nombres'],
+        'email': payload['email'],
+        'password': payload['password'],
+        'genero': payload['genero'],
+        'fecha_nacimiento': payload['fecha_nacimiento'],
+        'telefono': payload['telefono'],
+      };
+
+      // Verificar campos requeridos
+      final missingFields = requiredFields.entries
+          .where((e) => e.value == null || e.value.toString().isEmpty)
+          .map((e) => e.key)
+          .toList();
+
+      if (missingFields.isNotEmpty) {
+        return {
+          'success': false,
+          'error': 'Campos requeridos faltantes: ${missingFields.join(", ")}'
+        };
+      }
+
+      debugPrint('📤 PAYLOAD A ENVIAR:');
+      debugPrint(const JsonEncoder.withIndent('  ').convert(payload));
+
+      debugPrint('🔄 Iniciando petición POST...');
+
+      // si tu backend exige password_confirm:
+      if (payload['password'] != null && payload['password_confirm'] == null) {
+        payload['password_confirm'] = payload['password'];
+      }
+
+      print('[AuthService] URL de registro: $url');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(data),
+        body: jsonEncode(payload),
       );
+      debugPrint('📥 RESPUESTA DEL SERVIDOR:');
+      debugPrint('🔢 Status code: ${response.statusCode}');
+      debugPrint('📋 Body: ${response.body}');
+      debugPrint('=================================================');
+
       if (response.statusCode == 201) {
         final respData = jsonDecode(response.body);
-        // backend may return 'token' (TokenAuthentication) or 'access' (JWT)
-        if (respData['token'] != null)
+        if (respData['token'] != null) {
           await storage.write(key: 'token', value: respData['token']);
-        if (respData['access'] != null)
+        }
+        if (respData['access'] != null) {
           await storage.write(key: 'access', value: respData['access']);
+        }
         return {'success': true, 'data': respData};
       } else {
         final errorData = jsonDecode(response.body);

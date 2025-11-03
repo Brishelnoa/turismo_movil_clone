@@ -17,14 +17,51 @@ class _PagoViewState extends State<PagoView> {
 
   Future<void> _iniciarPago() async {
     setState(() => _isLoading = true);
-    final url = await PagoService.iniciarPago(widget.monto, widget.reservaId);
-    setState(() => _isLoading = false);
 
-    if (url != null && await canLaunchUrl(Uri.parse(url))) {
-      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    } else {
+    try {
+      final url = await PagoService.iniciarPago(widget.monto, widget.reservaId);
+      setState(() => _isLoading = false);
+
+      if (url == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al crear la sesión de pago. Por favor intenta nuevamente.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (!launched) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No se pudo abrir el navegador para el pago'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('URL inválida: $url'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo iniciar el pago')),
+        SnackBar(
+          content: Text('Error inesperado: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
