@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 
 import 'auth_service.dart';
+import 'network.dart';
 
 class PaquetesService {
-  static String get _baseUrl => baseUrl;
-
   static Future<Map<String, String>> _getHeaders() async {
     final token = await AuthService.getAccessToken();
     final headers = <String, String>{'Content-Type': 'application/json'};
@@ -30,12 +28,14 @@ class PaquetesService {
         .map((e) =>
             '${Uri.encodeQueryComponent(e.key)}=${Uri.encodeQueryComponent(e.value.toString())}')
         .join('&');
-    final url =
-        Uri.parse('$_baseUrl/api/paquetes/${qp.isNotEmpty ? '?$qp' : ''}');
+    // relative path used with getPath
     try {
       final headers = await _getHeaders();
-      if (kDebugMode) debugPrint('[PaquetesService] GET $url');
-      final res = await http.get(url, headers: headers);
+      if (kDebugMode)
+        debugPrint(
+            '[PaquetesService] GET /api/paquetes/${qp.isNotEmpty ? '?$qp' : ''}');
+      final res = await getPath('/api/paquetes/${qp.isNotEmpty ? '?$qp' : ''}',
+          headers: headers);
       if (kDebugMode)
         debugPrint('[PaquetesService] Response ${res.statusCode}: ${res.body}');
       if (res.statusCode == 200) {
@@ -47,11 +47,12 @@ class PaquetesService {
         if (body is List) {
           if (body.isEmpty) {
             // fallback: maybe backend uses campanias
-            final url2 = Uri.parse(
-                '$_baseUrl/api/campanias/${qp.isNotEmpty ? '?$qp' : ''}');
             if (kDebugMode)
-              debugPrint('[PaquetesService] paquetes empty, trying $url2');
-            final res2 = await http.get(url2, headers: headers);
+              debugPrint(
+                  '[PaquetesService] paquetes empty, trying /api/campanias/${qp.isNotEmpty ? '?$qp' : ''}');
+            final res2 = await getPath(
+                '/api/campanias/${qp.isNotEmpty ? '?$qp' : ''}',
+                headers: headers);
             if (kDebugMode)
               debugPrint(
                   '[PaquetesService] Response campanias ${res2.statusCode}: ${res2.body}');
@@ -69,12 +70,12 @@ class PaquetesService {
           if (body.containsKey('results') &&
               (body['results'] is List) &&
               (body['results'] as List).isEmpty) {
-            final url2 = Uri.parse(
-                '$_baseUrl/api/campanias/${qp.isNotEmpty ? '?$qp' : ''}');
             if (kDebugMode)
               debugPrint(
-                  '[PaquetesService] paquetes.results empty, trying $url2');
-            final res2 = await http.get(url2, headers: headers);
+                  '[PaquetesService] paquetes.results empty, trying /api/campanias/${qp.isNotEmpty ? '?$qp' : ''}');
+            final res2 = await getPath(
+                '/api/campanias/${qp.isNotEmpty ? '?$qp' : ''}',
+                headers: headers);
             if (kDebugMode)
               debugPrint(
                   '[PaquetesService] Response campanias ${res2.statusCode}: ${res2.body}');
@@ -105,11 +106,11 @@ class PaquetesService {
   }
 
   static Future<Map<String, dynamic>> getPaquete(int id) async {
-    final url = Uri.parse('$_baseUrl/api/paquetes/$id/');
+    // relative path used below when calling getPath
     try {
       final headers = await _getHeaders();
-      if (kDebugMode) debugPrint('[PaquetesService] GET $url');
-      final res = await http.get(url, headers: headers);
+      if (kDebugMode) debugPrint('[PaquetesService] GET /api/paquetes/$id/');
+      final res = await getPath('/api/paquetes/$id/', headers: headers);
       if (kDebugMode)
         debugPrint('[PaquetesService] Response ${res.statusCode}: ${res.body}');
       if (res.statusCode == 200) {
@@ -138,9 +139,9 @@ class PaquetesService {
         // If empty or not found, try campanias detail as fallback
         // e.g., /api/campanias/{id}/
         try {
-          final url2 = Uri.parse('$_baseUrl/api/campanias/$id/');
-          if (kDebugMode) debugPrint('[PaquetesService] trying fallback $url2');
-          final res2 = await http.get(url2, headers: headers);
+          if (kDebugMode)
+            debugPrint('[PaquetesService] trying fallback /api/campanias/$id/');
+          final res2 = await getPath('/api/campanias/$id/', headers: headers);
           if (kDebugMode)
             debugPrint(
                 '[PaquetesService] Response campanias detail ${res2.statusCode}: ${res2.body}');

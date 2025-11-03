@@ -17,6 +17,9 @@ dependencies:
   webview_flutter: ^4.4.0
 
   flutter_dotenv: ^6.0.0
+  firebase_core: ^2.24.0
+  firebase_messaging: ^14.5.0
+  flutter_local_notifications: ^17.0.0
 
 dev_dependencies:
   flutter_test:
@@ -25,3 +28,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - .env

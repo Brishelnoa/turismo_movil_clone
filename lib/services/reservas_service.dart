@@ -1,17 +1,17 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+// http is used internally by network helpers; avoid direct http.* usage in this service
 import 'package:flutter/foundation.dart';
 
 import 'auth_service.dart';
+import 'network.dart';
 
 /// Servicio para consumir los endpoints de Reservas descritos en la guía.
 ///
 /// Usa `AuthService.getAccessToken()` para obtener el token y lo incluye en
 /// el header `Authorization: Bearer <token>`.
 class ReservasService {
-  // Reutiliza la baseUrl declarada en auth_service.dart
-  static String get _baseUrl => baseUrl;
+  // This service delegates URL resolution to lib/services/network.dart
 
   /// Construye headers con el token actual
   static Future<Map<String, String>> _getHeaders() async {
@@ -48,12 +48,15 @@ class ReservasService {
     if (page != null) merged['page'] = page;
     if (pageSize != null) merged['page_size'] = pageSize;
     final qp = _encodeQueryParameters(merged);
-    final url = Uri.parse(
-        '$_baseUrl/api/reservas/mis_reservas/${qp.isNotEmpty ? '?$qp' : ''}');
+    // relative path used below when calling getPath
     try {
       final headers = await _getHeaders();
-      if (kDebugMode) debugPrint('[ReservasService] GET $url');
-      final res = await http.get(url, headers: headers);
+      if (kDebugMode)
+        debugPrint(
+            '[ReservasService] GET /api/reservas/mis_reservas/${qp.isNotEmpty ? '?$qp' : ''}');
+      final res = await getPath(
+          '/api/reservas/mis_reservas/${qp.isNotEmpty ? '?$qp' : ''}',
+          headers: headers);
       if (kDebugMode)
         debugPrint('[ReservasService] Response ${res.statusCode}: ${res.body}');
       if (res.statusCode == 200) {
@@ -91,11 +94,13 @@ class ReservasService {
       // si la ruta específica no existe en el backend, intentar fallback a /api/reservas/
       if (res.statusCode == 404) {
         final fallbackUrl =
-            Uri.parse('$_baseUrl/api/reservas/${qp.isNotEmpty ? '?$qp' : ''}');
+            Uri.parse('/api/reservas/${qp.isNotEmpty ? '?$qp' : ''}');
         if (kDebugMode)
           debugPrint(
               '[ReservasService] mis_reservas not found, trying fallback $fallbackUrl');
-        final fres = await http.get(fallbackUrl, headers: headers);
+        final fres = await getPath(
+            '/api/reservas/${qp.isNotEmpty ? '?$qp' : ''}',
+            headers: headers);
         if (kDebugMode)
           debugPrint(
               '[ReservasService] Fallback Response ${fres.statusCode}: ${fres.body}');
@@ -137,11 +142,13 @@ class ReservasService {
 
   /// GET /api/reservas/reservas_activas/
   static Future<Map<String, dynamic>> getReservasActivas() async {
-    final url = Uri.parse('$_baseUrl/api/reservas/reservas_activas/');
+    // relative path used below when calling getPath
     try {
       final headers = await _getHeaders();
-      if (kDebugMode) debugPrint('[ReservasService] GET $url');
-      final res = await http.get(url, headers: headers);
+      if (kDebugMode)
+        debugPrint('[ReservasService] GET /api/reservas/reservas_activas/');
+      final res =
+          await getPath('/api/reservas/reservas_activas/', headers: headers);
       if (kDebugMode)
         debugPrint('[ReservasService] Response ${res.statusCode}: ${res.body}');
       if (res.statusCode == 200)
@@ -159,10 +166,11 @@ class ReservasService {
 
   /// GET /api/reservas/historial_completo/
   static Future<Map<String, dynamic>> getHistorialCompleto() async {
-    final url = Uri.parse('$_baseUrl/api/reservas/historial_completo/');
+    // relative path used below when calling getPath
     try {
       final headers = await _getHeaders();
-      final res = await http.get(url, headers: headers);
+      final res =
+          await getPath('/api/reservas/historial_completo/', headers: headers);
       if (res.statusCode == 200)
         return jsonDecode(res.body) as Map<String, dynamic>;
       if (kDebugMode)
@@ -178,10 +186,10 @@ class ReservasService {
 
   /// GET /api/reservas/{id}/
   static Future<Map<String, dynamic>> getDetalleReserva(int id) async {
-    final url = Uri.parse('$_baseUrl/api/reservas/$id/');
+    // relative path used below when calling getPath
     try {
       final headers = await _getHeaders();
-      final res = await http.get(url, headers: headers);
+      final res = await getPath('/api/reservas/$id/', headers: headers);
       if (res.statusCode == 200)
         return jsonDecode(res.body) as Map<String, dynamic>;
       if (kDebugMode)
@@ -197,11 +205,11 @@ class ReservasService {
 
   /// PATCH /api/reservas/{id}/  (body: { estado: 'CANCELADA' })
   static Future<Map<String, dynamic>> cancelarReserva(int id) async {
-    final url = Uri.parse('$_baseUrl/api/reservas/$id/');
+    // relative path used below when calling patchPath
     try {
       final headers = await _getHeaders();
-      final res = await http.patch(url,
-          headers: headers, body: jsonEncode({'estado': 'CANCELADA'}));
+      final res = await patchPath('/api/reservas/$id/',
+          headers: headers, body: {'estado': 'CANCELADA'});
       if (res.statusCode == 200 || res.statusCode == 204)
         return {'success': true};
       if (kDebugMode)
@@ -219,7 +227,7 @@ class ReservasService {
   /// payload: see backend docs
   static Future<Map<String, dynamic>> createReserva(
       Map<String, dynamic> payload) async {
-    final url = Uri.parse('$_baseUrl/api/reservas/');
+    // relative path used below when calling postPath
     try {
       final headers = await _getHeaders();
       // si no se envía cliente_id, intentar inferirlo del user almacenado
@@ -229,9 +237,9 @@ class ReservasService {
       }
       if (kDebugMode)
         debugPrint(
-            '[ReservasService] POST $url -> payload: ${jsonEncode(payload)}');
+            '[ReservasService] POST /api/reservas/ -> payload: ${jsonEncode(payload)}');
       final res =
-          await http.post(url, headers: headers, body: jsonEncode(payload));
+          await postPath('/api/reservas/', headers: headers, body: payload);
       if (kDebugMode)
         debugPrint('[ReservasService] Response ${res.statusCode}: ${res.body}');
       if (res.statusCode == 201)
@@ -250,11 +258,11 @@ class ReservasService {
   /// POST /api/visitantes/ - Crear visitante
   static Future<Map<String, dynamic>> createVisitante(
       Map<String, dynamic> payload) async {
-    final url = Uri.parse('$_baseUrl/api/visitantes/');
+    // relative path used below when calling postPath
     try {
       final headers = await _getHeaders();
       final res =
-          await http.post(url, headers: headers, body: jsonEncode(payload));
+          await postPath('/api/visitantes/', headers: headers, body: payload);
       if (res.statusCode == 201)
         return jsonDecode(res.body) as Map<String, dynamic>;
       if (kDebugMode)
@@ -272,7 +280,7 @@ class ReservasService {
   /// payload: { "reserva": <id>, "visitante": <id> }
   static Future<Map<String, dynamic>> asociarVisitante(
       int reservaId, int visitanteId) async {
-    final url = Uri.parse('$_baseUrl/api/reserva-visitantes/');
+    // relative path used below when calling postPath
     try {
       final headers = await _getHeaders();
       // Attempt 1: common payload keys (reserva, visitante)
@@ -280,8 +288,8 @@ class ReservasService {
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 1 payload: ${jsonEncode(payload1)}');
-      var res =
-          await http.post(url, headers: headers, body: jsonEncode(payload1));
+      var res = await postPath('/api/reserva-visitantes/',
+          headers: headers, body: payload1);
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 1 response: ${res.statusCode} ${res.body}');
@@ -296,7 +304,8 @@ class ReservasService {
         debugPrint(
             '[ReservasService] asociarVisitante request headers: $headers');
       }
-      res = await http.post(url, headers: headers, body: jsonEncode(payload2));
+      res = await postPath('/api/reserva-visitantes/',
+          headers: headers, body: payload2);
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 2 response: ${res.statusCode} ${res.body}');
@@ -312,8 +321,8 @@ class ReservasService {
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 3 combined payload: ${jsonEncode(payloadCombined)}');
-      res = await http.post(url,
-          headers: headers, body: jsonEncode(payloadCombined));
+      res = await postPath('/api/reserva-visitantes/',
+          headers: headers, body: payloadCombined);
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 3 response: ${res.statusCode} ${res.body}');
@@ -328,7 +337,8 @@ class ReservasService {
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 4 payload: ${jsonEncode(payload4)}');
-      res = await http.post(url, headers: headers, body: jsonEncode(payload4));
+      res = await postPath('/api/reserva-visitantes/',
+          headers: headers, body: payload4);
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 4 response: ${res.statusCode} ${res.body}');
@@ -343,7 +353,8 @@ class ReservasService {
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 4 form body: $formBody');
-      res = await http.post(url, headers: headersForm, body: formBody);
+      res = await postPath('/api/reserva-visitantes/',
+          headers: headersForm, body: formBody);
       if (kDebugMode)
         debugPrint(
             '[ReservasService] asociarVisitante attempt 4 response: ${res.statusCode} ${res.body}');
@@ -364,11 +375,11 @@ class ReservasService {
   /// POST /api/pagos/ - Registrar pago
   static Future<Map<String, dynamic>> createPago(
       Map<String, dynamic> payload) async {
-    final url = Uri.parse('$_baseUrl/api/pagos/');
+    // relative path used below when calling postPath
     try {
       final headers = await _getHeaders();
       final res =
-          await http.post(url, headers: headers, body: jsonEncode(payload));
+          await postPath('/api/pagos/', headers: headers, body: payload);
       if (res.statusCode == 201)
         return jsonDecode(res.body) as Map<String, dynamic>;
       if (kDebugMode)
@@ -383,10 +394,10 @@ class ReservasService {
 
   /// DELETE /api/reservas/{id}/
   static Future<bool> deleteReserva(int id) async {
-    final url = Uri.parse('$_baseUrl/api/reservas/$id/');
+    // relative path used below when calling deletePath
     try {
       final headers = await _getHeaders();
-      final res = await http.delete(url, headers: headers);
+      final res = await deletePath('/api/reservas/$id/', headers: headers);
       return res.statusCode == 204 || res.statusCode == 200;
     } catch (e) {
       if (kDebugMode)
@@ -397,10 +408,10 @@ class ReservasService {
 
   /// DELETE /api/visitantes/{id}/
   static Future<bool> deleteVisitante(int id) async {
-    final url = Uri.parse('$_baseUrl/api/visitantes/$id/');
+    // relative path used below when calling deletePath
     try {
       final headers = await _getHeaders();
-      final res = await http.delete(url, headers: headers);
+      final res = await deletePath('/api/visitantes/$id/', headers: headers);
       return res.statusCode == 204 || res.statusCode == 200;
     } catch (e) {
       if (kDebugMode)
@@ -411,10 +422,11 @@ class ReservasService {
 
   /// DELETE /api/reserva-visitantes/{id}/
   static Future<bool> deleteReservaVisitante(int id) async {
-    final url = Uri.parse('$_baseUrl/api/reserva-visitantes/$id/');
+    // relative path used below when calling deletePath
     try {
       final headers = await _getHeaders();
-      final res = await http.delete(url, headers: headers);
+      final res =
+          await deletePath('/api/reserva-visitantes/$id/', headers: headers);
       return res.statusCode == 204 || res.statusCode == 200;
     } catch (e) {
       if (kDebugMode)

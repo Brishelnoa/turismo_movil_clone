@@ -1,0 +1,127 @@
+Verificacion del backend para uso con Flutter (celular en depuracion)
+
+Objetivo:
+- Comprobar que el servidor Django responde correctamente desde la máquina de desarrollo.
+- Comprobar login (POST) y endpoints protegidos con token.
+- Comprobar CORS/preflight.
+- Comprobar conectividad desde teléfono físico usando adb reverse (USB) o usando IP LAN.
+
+Instrucciones generales:
+- Reemplaza las URLs/credenciales de ejemplo por las tuyas.
+- Si usas adb reverse, la app en el teléfono debe apuntar a http://127.0.0.1:8000.
+- Si usas LAN IP (ej. 192.168.0.13), asegúrate de ejecutar el servidor con:
+  python manage.py runserver 0.0.0.0:8000
+  y de que el firewall permite conexiones entrantes al puerto 8000.
+
+Sección A — Comandos desde la PC (PowerShell / curl)
+
+Nota: en Windows PowerShell, `curl` puede ser un alias a Invoke-WebRequest. Si tienes `curl.exe` (Git Bash o Windows 10+), úsalo; abajo también están los ejemplos con Invoke-RestMethod.
+
+1) Comprobar que la raíz del servidor responde
+
+# Usando curl.exe
+curl -i http://127.0.0.1:8000/
+
+# Usando PowerShell (Invoke-RestMethod)
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/' -Method Get
+
+Esperado: HTTP/1.1 200 OK o redireccion a la página admin si corresponde.
+
+2) Obtener lista pública de paquetes (GET)
+
+curl -i http://127.0.0.1:8000/api/paquetes/
+
+PowerShell:
+$resp = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/paquetes/' -Method Get
+$resp | ConvertTo-Json -Depth 4
+
+Esperado: HTTP 200 con JSON (array de paquetes) o 200 OK y un JSON con datos.
+
+3) Hacer login (POST) — obtener token
+
+# Reemplaza email y password por las credenciales de prueba
+curl -i -H "Content-Type: application/json" -d "{\"email\":\"tu@email.com\",\"password\":\"tu_password\"}" http://127.0.0.1:8000/api/login/
+
+PowerShell (más cómodo para capturar token):
+$body = @{ email = 'tu@email.com'; password = 'tu_password' } | ConvertTo-Json
+$resp = Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/login/' -Method Post -Body $body -ContentType 'application/json'
+$resp | ConvertTo-Json -Depth 4
+
+# Extraer token (si el endpoint devuelve { "token": "..." })
+$token = $resp.token
+Write-Output "TOKEN=$token"
+
+Esperado: HTTP 200 y JSON que contiene la propiedad "token" (o el formato que use tu API). Si obtienes 400/401 revisar credenciales y el backend.
+
+4) Probar endpoint protegido usando token
+
+# Usando curl (reemplaza <TOKEN>)
+curl -i -H "Authorization: Token <TOKEN>" http://127.0.0.1:8000/api/profile/
+
+PowerShell (usando la variable obtenida arriba):
+Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/profile/' -Method Get -Headers @{ Authorization = "Token $token" } | ConvertTo-Json -Depth 4
+
+Esperado: HTTP 200 con datos del usuario. Si obtienes 401, el token no es válido o la cabecera no es la que espera el backend.
+
+5) Probar preflight CORS (OPTIONS)
+
+curl -i -X OPTIONS http://127.0.0.1:8000/api/paquetes/ -H "Origin: http://localhost:8080" -H "Access-Control-Request-Method: GET"
+
+Esperado: Respuesta 200/204 con cabeceras Access-Control-Allow-Origin y Access-Control-Allow-Methods si CORS está configurado correctamente.
+
+Sección B — Verificaciones relacionadas con el teléfono (USB + adb reverse)
+
+1) Localizar adb (ejemplo de ruta detectada por flutter doctor):
+
+C:\Users\HP\AppData\Local\Android\sdk\platform-tools\adb.exe devices
+
+2) Comprobar que el dispositivo aparece:
+
+C:\Users\HP\AppData\Local\Android\sdk\platform-tools\adb.exe devices
+
+Salida esperada: lista con el ID del dispositivo y "device".
+
+3) Crear el túnel reverse (en la PC):
+
+C:\Users\HP\AppData\Local\Android\sdk\platform-tools\adb.exe reverse tcp:8000 tcp:8000
+
+4) Verificar reverse:
+
+C:\Users\HP\AppData\Local\Android\sdk\platform-tools\adb.exe reverse --list
+
+5) Probar desde el teléfono (después del reverse):
+- Abrir el navegador del teléfono y visitar: http://127.0.0.1:8000/api/paquetes/
+- O usar la app Flutter (apuntando a http://127.0.0.1:8000) y probar login. Si el reverse está activo, la app deberá comunicarse con el servidor local.
+
+Si no deseas usar adb reverse, usa la IP LAN (ej. http://192.168.0.13:8000) y ejecuta el servidor con runserver 0.0.0.0:8000 y configura firewall para permitir conexiones.
+
+Sección C — Comprobar con Flutter y ver logs
+
+1) Asegúrate de que la app apunta a la URL correcta (env / --dart-define). Ejemplo:
+flutter run --dart-define=BASE_URL="http://127.0.0.1:8000"
+
+2) En los logs de `flutter run` busca la línea donde imprimimos la BASE_URL al arrancar (si agregaste debug prints en `main.dart`). Debe mostrar http://127.0.0.1:8000.
+
+3) Desde la app, intenta login. Observa la respuesta en los logs. Si recibes 200 y token, el flujo funciona.
+
+Sección D — Pruebas adicionales y resolución de problemas
+
+- Si CURL desde PC funciona pero la app en el teléfono no: revisa adb reverse; si usas LAN IP revisa que el teléfono esté en la misma red Wi-Fi y que el servidor acepte conexiones externas (runserver 0.0.0.0).
+- Si recibes errores de CORS en la app (en navegador o webview), asegúrate de que `django-cors-headers` está configurado y que `CORS_ALLOWED_ORIGINS` incluye la URL de origen o usa `CORS_ALLOW_ALL_ORIGINS = True` durante pruebas (no en producción).
+- Si el endpoint de login devuelve token pero la app obtiene 401 en solicitudes siguientes: verifica que la app añade la cabecera exacta que el backend espera (ej: "Authorization: Token <token>" o "Authorization: Bearer <token>").
+- Si usas HTTPS en producción, asegúrate de actualizar `BASE_URL` en la app a https://tu-dominio y no usar cleartext en producción.
+
+Checklist de resultados esperados (marca ok/no ok):
+- [ ] curl GET /api/paquetes/ -> HTTP 200 + JSON
+- [ ] curl POST /api/login/ -> HTTP 200 + token
+- [ ] GET protegido con "Authorization: Token <token>" -> HTTP 200
+- [ ] CORS preflight -> Cabeceras CORS presentes (Access-Control-Allow-Origin)
+- [ ] adb reverse funciona (lista de reverses) y abrir http://127.0.0.1:8000 desde el navegador del teléfono muestra JSON
+- [ ] Flutter app con BASE_URL=http://127.0.0.1:8000 hace login y obtiene token
+
+Instrucciones para reportar resultados (qué pegar aquí):
+- Salida completa del comando que falla (pegar texto). Ejemplo: salida de `curl -i ...` o de `Invoke-RestMethod`.
+- Salida de `adb devices` y `adb reverse --list`.
+- Línea(s) relevantes en los logs de `flutter run` (donde se muestra la BASE_URL y la respuesta del login).
+
+--- FIN ---

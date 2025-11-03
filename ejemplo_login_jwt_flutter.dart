@@ -2,11 +2,13 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-const String _defaultBaseUrl =
-    'https://backendspring2-production.up.railway.app';
-const String baseUrl =
-    String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
+const String _defaultBaseUrl = 'http://10.0.2.2:8000';
+
+final String baseUrl = dotenv.env['BASE_URL']?.isNotEmpty == true
+    ? dotenv.env['BASE_URL']!
+    : const String.fromEnvironment('BASE_URL', defaultValue: _defaultBaseUrl);
 final storage = FlutterSecureStorage();
 
 Future<void> login(String email, String password) async {
