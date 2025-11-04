@@ -27,6 +27,33 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            
+            <!-- 🔗 Deep Links para redirección desde Stripe -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <!-- Pago exitoso -->
+                <data
+                    android:scheme="turismoapp"
+                    android:host="payment-success" />
+                
+                <!-- Pago cancelado -->
+                <data
+                    android:scheme="turismoapp"
+                    android:host="payment-cancel" />
+                
+                <!-- Error en pago -->
+                <data
+                    android:scheme="turismoapp"
+                    android:host="payment-error" />
+                
+                <!-- Pago pendiente -->
+                <data
+                    android:scheme="turismoapp"
+                    android:host="payment-pending" />
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
@@ -51,6 +78,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        
+        <!-- 🌐 Permitir abrir URLs en navegadores externos (requerido para url_launcher en Android 11+) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
         </intent>
     </queries>
 </manifest>
