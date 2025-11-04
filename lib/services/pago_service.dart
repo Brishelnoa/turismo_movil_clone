@@ -134,7 +134,7 @@ class PagoService {
       // 🔧 INTENTO 1: Lanzar directamente sin verificar (más agresivo)
       // canLaunchUrl a veces falla incorrectamente en Android
       debugPrint('[Pago] 🚀 Intentando lanzar URL directamente...');
-      
+
       final launched = await launchUrl(
         url,
         mode: LaunchMode.externalApplication, // ✅ CRÍTICO: Navegador externo
@@ -149,12 +149,13 @@ class PagoService {
       return launched;
     } catch (e) {
       debugPrint('[Pago] ❌ Error abriendo navegador: $e');
-      
+
       // 🔧 INTENTO 2: Probar con modo platformDefault
       try {
         debugPrint('[Pago] 🔄 Reintentando con modo platformDefault...');
         final Uri url = Uri.parse(checkoutUrl);
-        final launched2 = await launchUrl(url, mode: LaunchMode.platformDefault);
+        final launched2 =
+            await launchUrl(url, mode: LaunchMode.platformDefault);
         debugPrint('[Pago] Resultado intento 2: $launched2');
         return launched2;
       } catch (e2) {
